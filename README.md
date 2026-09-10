@@ -19,6 +19,16 @@ The project is being built block by block. Read the [project brief](docs/PROJECT
 4. Copy `.env.example` to `.env` when application configuration is introduced.
 5. Run the quality checks described below.
 
+## Run the bot locally
+
+After Block 1 is complete, set `TELEGRAM_BOT_TOKEN` in `.env` and run:
+
+```text
+python -m e_block_bot.main
+```
+
+The bot currently responds to `/start`. Never commit `.env` or a real Telegram token.
+
 ## Quality checks
 
 ```text
