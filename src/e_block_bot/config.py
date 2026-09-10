@@ -41,7 +41,9 @@ class Settings(BaseSettings):
 def get_settings() -> Settings:
     """Load settings once per process."""
 
-    return Settings()
+    # BaseSettings loads fields from the environment at runtime; mypy cannot
+    # see that dynamic constructor behavior.
+    return Settings()  # type: ignore[call-arg]
 
 
 Token = Annotated[SecretStr, Field(description="Telegram bot token")]
