@@ -8,9 +8,9 @@ Outcome: project context, contribution rules, initial toolchain, and CI skeleton
 
 Suggested commits:
 
-- `docs: define project brief and engineering rules`
-- `build: add Python project structure and dependency management`
-- `ci: add formatting linting type checking and test workflow`
+- `docs: Define project brief and engineering rules`
+- `build: Add Python project structure and dependency management`
+- `ci: Add formatting linting type checking and test workflow`
 
 ## Block 1 — Bot skeleton
 

@@ -24,6 +24,19 @@ Build a reliable Telegram bot for E Block that replaces informal lounge-booking 
 - Do not ask an agent to implement a whole future block when the current block has not been reviewed. Keep changes small enough to understand, test, and revert.
 - Record assumptions, verification commands, failed checks, and remaining risks in the final handoff or pull request description.
 
+## Git convention
+
+All Git work in this project must follow the [SE-EDU Git conventions](https://se-education.org/guides/conventions/git.html):
+
+- Write commit subjects in imperative mood, capitalize the first letter, omit the final period, and keep them within 72 characters (aim for 50).
+- Use a category or scope when useful, such as `feat: Add start command` or `docs: Define contribution rules`.
+- For non-trivial commits, add a body separated by a blank line, wrapped at 72 characters. Explain what changed and why; the diff explains how.
+- Use meaningful kebab-case branch names. This project prefixes branches with `codex/`, for example `codex/block-1-bot-skeleton`.
+- Keep commits focused and reviewable. Split unrelated changes into separate commits.
+- Pull requests must describe the problem, the change, verification evidence, and remaining risks.
+
+These rules apply whenever an agent suggests, creates, reviews, or documents Git commits, branches, or pull requests in this repository.
+
 ## Product constraints
 
 - Use private chat for booking details where practical.
