@@ -14,9 +14,9 @@ The repository-specific rules below make those conventions concrete for this pro
 
 ## Branches
 
-- Use meaningful kebab-case names.
-- Prefix project branches with `codex/`.
-- Examples: `codex/block-0-repository-setup`, `codex/availability-slots`.
+- Use meaningful lowercase kebab-case names.
+- If the branch relates to an issue, prefix it with the issue number.
+- Examples: `block-0-repository-setup`, `availability-slots`, `1234-bot-skeleton`.
 
 ## Pull requests
 
