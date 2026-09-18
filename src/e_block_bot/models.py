@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import UTC, date, datetime, time
 
-from sqlalchemy import Date, DateTime, ForeignKey, Integer, String, Text, Time, UniqueConstraint
+from sqlalchemy import Date, DateTime, ForeignKey, Index, Integer, String, Text, Time, text
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
@@ -29,7 +29,15 @@ class Booking(Base):
 
     __tablename__ = "bookings"
     __table_args__ = (
-        UniqueConstraint("booking_date", "slot_start", "slot_end", name="uq_lounge_slot"),
+        Index(
+            "uq_active_lounge_slot",
+            "booking_date",
+            "slot_start",
+            "slot_end",
+            unique=True,
+            postgresql_where=text("cancelled_at IS NULL"),
+            sqlite_where=text("cancelled_at IS NULL"),
+        ),
     )
 
     id: Mapped[int] = mapped_column(primary_key=True)

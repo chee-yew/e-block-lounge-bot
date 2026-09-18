@@ -47,3 +47,6 @@ async def test_only_owner_or_admin_can_cancel(booking_service: BookingService) -
 
     await booking_service.cancel_booking(1, booking.id)
     assert await booking_service.user_bookings(1) == []
+
+    replacement = await booking_service.create_booking(2, booking_date, slot, "Replacement")
+    assert replacement.id != booking.id

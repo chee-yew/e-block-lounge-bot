@@ -51,6 +51,8 @@ class BookingService:
         """Return configured slots and whether each is currently available."""
 
         slots = self.slots_for_date(booking_date)
+        now = datetime.now(self.settings.timezone)
+        current_time = now.time()
         async with self.session_factory() as session:
             result = await session.scalars(
                 select(Booking).where(
@@ -59,7 +61,14 @@ class BookingService:
                 )
             )
             booked = {(item.slot_start, item.slot_end) for item in result}
-        return [(slot, (slot.start, slot.end) not in booked) for slot in slots]
+        return [
+            (
+                slot,
+                (slot.start, slot.end) not in booked
+                and (booking_date != now.date() or slot.start > current_time),
+            )
+            for slot in slots
+        ]
 
     async def ensure_user(
         self, telegram_id: int, username: str | None, first_name: str | None
@@ -87,6 +96,8 @@ class BookingService:
         today = datetime.now(self.settings.timezone).date()
         if booking_date < today:
             raise BookingError("You cannot book a date in the past.")
+        if booking_date == today and slot.start <= datetime.now(self.settings.timezone).time():
+            raise BookingError("That slot has already started or passed.")
         if slot not in self.slots_for_date(booking_date):
             raise BookingError("That is not one of the configured lounge slots.")
         async with self.session_factory() as session:

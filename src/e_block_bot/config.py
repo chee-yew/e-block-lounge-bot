@@ -5,7 +5,7 @@ from functools import lru_cache
 from typing import Annotated
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-from pydantic import Field, SecretStr, field_validator
+from pydantic import Field, SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -48,6 +48,20 @@ class Settings(BaseSettings):
         return frozenset(
             int(value.strip()) for value in self.admin_user_ids.split(",") if value.strip()
         )
+
+    @model_validator(mode="after")
+    def validate_slot_window(self) -> "Settings":
+        if self.lounge_close_time <= self.lounge_open_time:
+            raise ValueError("LOUNGE_CLOSE_TIME must be later than LOUNGE_OPEN_TIME")
+        total_minutes = (
+            self.lounge_close_time.hour * 60
+            + self.lounge_close_time.minute
+            - self.lounge_open_time.hour * 60
+            - self.lounge_open_time.minute
+        )
+        if total_minutes % self.slot_duration_minutes:
+            raise ValueError("The lounge opening window must contain whole configured slots")
+        return self
 
 
 @lru_cache
