@@ -4,7 +4,7 @@ services:
     environment:
       POSTGRES_DB: e_block_bot
       POSTGRES_USER: e_block_bot
-      POSTGRES_PASSWORD: change-this-password
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     restart: unless-stopped
@@ -18,7 +18,7 @@ services:
       LOUNGE_OPEN_TIME: ${LOUNGE_OPEN_TIME:-10:00}
       LOUNGE_CLOSE_TIME: ${LOUNGE_CLOSE_TIME:-22:00}
       SLOT_DURATION_MINUTES: ${SLOT_DURATION_MINUTES:-120}
-      DATABASE_URL: postgresql+asyncpg://e_block_bot:change-this-password@db:5432/e_block_bot
+      DATABASE_URL: postgresql+asyncpg://e_block_bot:${POSTGRES_PASSWORD}@db:5432/e_block_bot
     depends_on:
       - db
     restart: unless-stopped
