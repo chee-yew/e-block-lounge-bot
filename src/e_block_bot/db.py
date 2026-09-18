@@ -12,10 +12,20 @@ from sqlalchemy.ext.asyncio import (
 from e_block_bot.models import Base
 
 
+def normalize_async_database_url(database_url: str) -> str:
+    """Convert common PostgreSQL URLs to SQLAlchemy's async-driver form."""
+
+    if database_url.startswith("postgres://"):
+        return database_url.replace("postgres://", "postgresql+asyncpg://", 1)
+    if database_url.startswith("postgresql://"):
+        return database_url.replace("postgresql://", "postgresql+asyncpg://", 1)
+    return database_url
+
+
 def create_engine(database_url: str) -> AsyncEngine:
     """Create an async SQLAlchemy engine for the configured database."""
 
-    return create_async_engine(database_url, pool_pre_ping=True)
+    return create_async_engine(normalize_async_database_url(database_url), pool_pre_ping=True)
 
 
 def create_session_factory(engine: AsyncEngine) -> async_sessionmaker[AsyncSession]:
