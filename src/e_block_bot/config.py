@@ -1,5 +1,6 @@
 """Application configuration loaded from environment variables."""
 
+from datetime import time
 from functools import lru_cache
 from typing import Annotated
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
@@ -19,7 +20,11 @@ class Settings(BaseSettings):
 
     telegram_bot_token: SecretStr = Field(alias="TELEGRAM_BOT_TOKEN")
     e_block_timezone: str = Field(default="Asia/Singapore", alias="E_BLOCK_TIMEZONE")
-    database_url: str | None = Field(default=None, alias="DATABASE_URL")
+    database_url: str = Field(default="sqlite+aiosqlite:///./e_block_bot.db", alias="DATABASE_URL")
+    admin_user_ids: str = Field(default="", alias="ADMIN_USER_IDS")
+    lounge_open_time: time = Field(default=time(10, 0), alias="LOUNGE_OPEN_TIME")
+    lounge_close_time: time = Field(default=time(22, 0), alias="LOUNGE_CLOSE_TIME")
+    slot_duration_minutes: int = Field(default=120, alias="SLOT_DURATION_MINUTES", gt=0)
 
     @field_validator("e_block_timezone")
     @classmethod
@@ -35,6 +40,14 @@ class Settings(BaseSettings):
         """Return the configured timezone for date and time calculations."""
 
         return ZoneInfo(self.e_block_timezone)
+
+    @property
+    def admin_ids(self) -> frozenset[int]:
+        """Return configured Telegram administrator IDs."""
+
+        return frozenset(
+            int(value.strip()) for value in self.admin_user_ids.split(",") if value.strip()
+        )
 
 
 @lru_cache
