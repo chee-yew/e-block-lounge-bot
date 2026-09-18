@@ -20,7 +20,9 @@ class User(Base):
     telegram_id: Mapped[int] = mapped_column(Integer, primary_key=True)
     username: Mapped[str | None] = mapped_column(String(255))
     first_name: Mapped[str | None] = mapped_column(String(255))
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(UTC))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(UTC)
+    )
     bookings: Mapped[list[Booking]] = relationship(back_populates="user")
 
 
@@ -46,8 +48,10 @@ class Booking(Base):
     slot_start: Mapped[time] = mapped_column(Time)
     slot_end: Mapped[time] = mapped_column(Time)
     purpose: Mapped[str | None] = mapped_column(Text)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(UTC))
-    cancelled_at: Mapped[datetime | None] = mapped_column(DateTime)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(UTC)
+    )
+    cancelled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     user: Mapped[User] = relationship(back_populates="bookings")
 
 
@@ -60,4 +64,6 @@ class AuditLog(Base):
     actor_id: Mapped[int] = mapped_column(Integer, index=True)
     action: Mapped[str] = mapped_column(String(100))
     booking_id: Mapped[int | None] = mapped_column(ForeignKey("bookings.id"))
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(UTC))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(UTC)
+    )
