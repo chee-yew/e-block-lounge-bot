@@ -1,6 +1,5 @@
 """Application configuration loaded from environment variables."""
 
-from datetime import time
 from functools import lru_cache
 from typing import Annotated
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
@@ -22,10 +21,8 @@ class Settings(BaseSettings):
     e_block_timezone: str = Field(default="Asia/Singapore", alias="E_BLOCK_TIMEZONE")
     database_url: str = Field(default="sqlite+aiosqlite:///./e_block_bot.db", alias="DATABASE_URL")
     admin_user_ids: str = Field(default="", alias="ADMIN_USER_IDS")
-    lounge_open_time: time = Field(default=time(10, 0), alias="LOUNGE_OPEN_TIME")
-    lounge_close_time: time = Field(default=time(22, 0), alias="LOUNGE_CLOSE_TIME")
-    slot_duration_minutes: int = Field(default=120, alias="SLOT_DURATION_MINUTES", gt=0)
     slot_increment_minutes: int = Field(default=30, alias="SLOT_INCREMENT_MINUTES", gt=0)
+    max_daily_booking_minutes: int = Field(default=180, alias="MAX_DAILY_BOOKING_MINUTES", gt=0)
 
     @field_validator("e_block_timezone")
     @classmethod
@@ -52,18 +49,8 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def validate_slot_window(self) -> "Settings":
-        if self.lounge_close_time <= self.lounge_open_time:
-            raise ValueError("LOUNGE_CLOSE_TIME must be later than LOUNGE_OPEN_TIME")
-        total_minutes = (
-            self.lounge_close_time.hour * 60
-            + self.lounge_close_time.minute
-            - self.lounge_open_time.hour * 60
-            - self.lounge_open_time.minute
-        )
-        if total_minutes % self.slot_duration_minutes:
-            raise ValueError("The lounge opening window must contain whole configured slots")
-        if self.slot_duration_minutes % self.slot_increment_minutes:
-            raise ValueError("SLOT_DURATION_MINUTES must be divisible by SLOT_INCREMENT_MINUTES")
+        if self.max_daily_booking_minutes % self.slot_increment_minutes:
+            raise ValueError("MAX_DAILY_BOOKING_MINUTES must use the configured time increment")
         return self
 
 

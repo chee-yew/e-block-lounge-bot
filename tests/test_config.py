@@ -23,14 +23,14 @@ def test_settings_reject_unknown_timezone(monkeypatch) -> None:
         raise AssertionError("Settings should reject an unknown timezone")
 
 
-def test_settings_reject_invalid_slot_window(monkeypatch) -> None:
+def test_settings_reject_invalid_daily_limit(monkeypatch) -> None:
     monkeypatch.setenv("TELEGRAM_BOT_TOKEN", "test-token")
-    monkeypatch.setenv("LOUNGE_OPEN_TIME", "22:00")
-    monkeypatch.setenv("LOUNGE_CLOSE_TIME", "10:00")
+    monkeypatch.setenv("MAX_DAILY_BOOKING_MINUTES", "100")
+    monkeypatch.setenv("SLOT_INCREMENT_MINUTES", "30")
 
     try:
         Settings()
     except ValueError as error:
-        assert "later than" in str(error)
+        assert "configured time increment" in str(error)
     else:
-        raise AssertionError("Settings should reject an invalid slot window")
+        raise AssertionError("Settings should reject an invalid daily limit")

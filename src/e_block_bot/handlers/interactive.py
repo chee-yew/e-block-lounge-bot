@@ -1,4 +1,4 @@
-"""Inline calendar and time selectors for the booking workflow."""
+"""Inline calendar, start-time, and duration selectors."""
 
 import calendar
 from collections.abc import Sequence
@@ -8,6 +8,7 @@ from aiogram import F, Router
 from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, Message
 
 from e_block_bot.booking import BookingError, BookingService, Slot
+from e_block_bot.models import Booking, User
 
 
 def calendar_keyboard(action: str, month: date) -> InlineKeyboardMarkup:
@@ -45,19 +46,36 @@ def calendar_keyboard(action: str, month: date) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=rows)
 
 
-def time_keyboard(booking_date: date, availability: list[tuple[str, bool]]) -> InlineKeyboardMarkup:
+def time_keyboard(
+    booking_date: date, availability: Sequence[tuple[Slot, bool]]
+) -> InlineKeyboardMarkup:
     """Build 30-minute start-time buttons for a selected date."""
 
     buttons = [
         InlineKeyboardButton(
-            text=(f"✅ {label}" if available else f"❌ {label}"),
+            text=(f"✅ {slot.start:%H:%M}" if available else f"❌ {slot.start:%H:%M}"),
             callback_data=(
-                f"time:{booking_date.isoformat()}:{label[:5].replace(':', '')}"
-                if available
-                else "cal:noop"
+                f"time:{booking_date.isoformat()}:{slot.start:%H%M}" if available else "cal:noop"
             ),
         )
-        for label, available in availability
+        for slot, available in availability
+    ]
+    return InlineKeyboardMarkup(
+        inline_keyboard=[buttons[index : index + 4] for index in range(0, len(buttons), 4)]
+    )
+
+
+def duration_keyboard(
+    booking_date: date, start: str, durations: Sequence[int]
+) -> InlineKeyboardMarkup:
+    """Build duration choices for a selected start time."""
+
+    buttons = [
+        InlineKeyboardButton(
+            text=f"{minutes // 60}h" if minutes % 60 == 0 else f"{minutes}m",
+            callback_data=f"duration:{booking_date.isoformat()}:{start}:{minutes}",
+        )
+        for minutes in durations
     ]
     return InlineKeyboardMarkup(
         inline_keyboard=[buttons[index : index + 3] for index in range(0, len(buttons), 3)]
@@ -65,7 +83,7 @@ def time_keyboard(booking_date: date, availability: list[tuple[str, bool]]) -> I
 
 
 def create_interactive_router(service: BookingService) -> Router:
-    """Create callback handlers for calendars and time selection."""
+    """Create callback handlers for the interactive booking flow."""
 
     router = Router(name="interactive")
 
@@ -78,32 +96,20 @@ def create_interactive_router(service: BookingService) -> Router:
             return
         _, kind, action, value = data.split(":")
         if kind == "nav":
-            selected_month = date.fromisoformat(f"{value}-01")
-            await message.edit_reply_markup(reply_markup=calendar_keyboard(action, selected_month))
+            await message.edit_reply_markup(
+                reply_markup=calendar_keyboard(action, date.fromisoformat(f"{value}-01"))
+            )
         elif kind == "date":
             selected_date = date.fromisoformat(value)
-            rows = await service.availability(selected_date)
             if action == "availability":
                 await message.edit_text(
-                    _availability_text(selected_date, rows),
-                    reply_markup=InlineKeyboardMarkup(
-                        inline_keyboard=[
-                            [
-                                InlineKeyboardButton(
-                                    text="Book this date", callback_data=f"bookdate:{value}"
-                                )
-                            ]
-                        ]
+                    availability_text(
+                        service, selected_date, await service.bookings_for_date(selected_date)
                     ),
+                    reply_markup=_book_date_keyboard(value),
                 )
             else:
-                await message.edit_text(
-                    f"Choose a 30-minute start time for {selected_date:%Y-%m-%d}.\n"
-                    "Each booking lasts two hours.",
-                    reply_markup=time_keyboard(
-                        selected_date, [(slot.label(), available) for slot, available in rows]
-                    ),
-                )
+                await _show_start_times(message, service, selected_date)
         await callback.answer()
 
     @router.callback_query(F.data.startswith("bookdate:"))
@@ -113,38 +119,42 @@ def create_interactive_router(service: BookingService) -> Router:
         if data is None or not isinstance(message, Message):
             await callback.answer()
             return
-        selected_date = date.fromisoformat(data.split(":", 1)[1])
-        rows = await service.availability(selected_date)
-        await message.edit_text(
-            f"Choose a 30-minute start time for {selected_date:%Y-%m-%d}.\n"
-            "Each booking lasts two hours.",
-            reply_markup=time_keyboard(
-                selected_date, [(slot.label(), available) for slot, available in rows]
-            ),
-        )
+        await _show_start_times(message, service, date.fromisoformat(data.split(":", 1)[1]))
         await callback.answer()
 
     @router.callback_query(F.data.startswith("time:"))
     async def time_callback(callback: CallbackQuery) -> None:
         message = callback.message
         data = callback.data
-        if data is None or not isinstance(message, Message):
+        if data is None or not isinstance(message, Message) or callback.from_user is None:
             await callback.answer()
             return
         _, date_value, time_value = data.split(":")
         booking_date = date.fromisoformat(date_value)
-        start = datetime.strptime(time_value, "%H%M").time()
-        slot = next(
-            (
-                candidate
-                for candidate in service.slots_for_date(booking_date)
-                if candidate.start == start
-            ),
-            None,
+        durations = await service.available_durations(
+            callback.from_user.id, booking_date, datetime.strptime(time_value, "%H%M").time()
         )
-        if slot is None or callback.from_user is None:
-            await callback.answer("That time is no longer available.", show_alert=True)
+        if not durations:
+            await callback.answer("No duration is available for that start time.", show_alert=True)
             return
+        await message.edit_text(
+            f"Choose the duration for {booking_date:%Y-%m-%d} "
+            f"at {time_value[:2]}:{time_value[2:]}.",
+            reply_markup=duration_keyboard(booking_date, time_value, durations),
+        )
+        await callback.answer()
+
+    @router.callback_query(F.data.startswith("duration:"))
+    async def duration_callback(callback: CallbackQuery) -> None:
+        message = callback.message
+        data = callback.data
+        if data is None or not isinstance(message, Message) or callback.from_user is None:
+            await callback.answer()
+            return
+        _, date_value, time_value, duration_value = data.split(":")
+        booking_date = date.fromisoformat(date_value)
+        start = datetime.strptime(time_value, "%H%M").time()
+        slot = service.slot_for_duration(booking_date, start, int(duration_value))
         try:
             await service.ensure_user(
                 callback.from_user.id,
@@ -165,14 +175,36 @@ def create_interactive_router(service: BookingService) -> Router:
     return router
 
 
+async def _show_start_times(message: Message, service: BookingService, selected_date: date) -> None:
+    rows = await service.availability(selected_date)
+    await message.edit_text(
+        f"Choose a 30-minute start time for {selected_date:%Y-%m-%d}.",
+        reply_markup=time_keyboard(selected_date, rows),
+    )
+
+
+def _book_date_keyboard(value: str) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="Book this date", callback_data=f"bookdate:{value}")]
+        ]
+    )
+
+
 def _month_value(month: date, offset: int) -> str:
     month_index = month.year * 12 + month.month - 1 + offset
     return f"{month_index // 12:04d}-{month_index % 12 + 1:02d}"
 
 
-def _availability_text(selected_date: date, rows: Sequence[tuple[Slot, bool]]) -> str:
-    lines = [f"Lounge availability for {selected_date:%Y-%m-%d}:"]
-    lines.extend(
-        f"{slot.label()} — {'available' if available else 'booked'}" for slot, available in rows
-    )
+def availability_text(
+    service: BookingService, selected_date: date, rows: Sequence[tuple[Booking, User]]
+) -> str:
+    if not rows:
+        return f"No bookings for {selected_date:%Y-%m-%d}."
+    lines = [f"Bookings for {selected_date:%Y-%m-%d}:"]
+    for booking, user in rows:
+        handle = f"@{user.username}" if user.username else (user.first_name or "resident")
+        start = service._aware(booking.start_at).astimezone(service.settings.timezone)
+        end = service._aware(booking.end_at).astimezone(service.settings.timezone)
+        lines.append(f"{start:%H:%M}-{end:%H:%M} — {handle}")
     return "\n".join(lines)

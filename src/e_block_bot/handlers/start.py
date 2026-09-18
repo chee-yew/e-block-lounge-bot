@@ -14,8 +14,8 @@ async def handle_start(message: Message) -> None:
     await message.answer(
         "Welcome to the E Block Lounge Bot!\n\n"
         "Use these commands:\n"
-        "/availability [YYYY-MM-DD] — see lounge slots\n"
-        "/book YYYY-MM-DD HH:MM [purpose] — make a booking\n"
+        "/availability — choose a date and see current bookings\n"
+        "/book — choose a date, start time, and duration\n"
         "/mybookings — see your future bookings\n"
         "/cancel BOOKING_ID — cancel your booking"
     )

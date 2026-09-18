@@ -4,7 +4,9 @@ Telegram bot for clear, conflict-free booking of the E Block lounge.
 
 ## Features
 
-- Fixed two-hour lounge slots in the configured timezone
+- 24-hour lounge with 30-minute start-time increments
+- Resident-selected durations from 30 minutes up to 3 hours
+- Maximum 3 hours of active bookings per resident per local calendar day
 - Availability lookup by date
 - Booking with an optional purpose
 - Personal booking list and cancellation
@@ -28,14 +30,16 @@ before starting the bot.
 
 ```text
 /start
-/availability [YYYY-MM-DD]
-/book YYYY-MM-DD HH:MM [optional purpose]
+/availability
+/book
 /mybookings
 /cancel BOOKING_ID
 ```
 
-Booking details are intended for private chats. Admin commands are available only to
-IDs listed in `ADMIN_USER_IDS`:
+Booking details are intended for private chats. The availability view shows only
+current bookings, including the resident's Telegram handle; unlisted times are
+assumed available. Admin commands are available only to IDs listed in
+`ADMIN_USER_IDS`:
 
 ```text
 /admin_bookings

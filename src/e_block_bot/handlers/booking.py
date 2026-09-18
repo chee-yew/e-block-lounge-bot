@@ -9,7 +9,7 @@ from aiogram.types import Message
 
 from e_block_bot.booking import BookingError, BookingService
 from e_block_bot.config import Settings
-from e_block_bot.handlers.interactive import calendar_keyboard
+from e_block_bot.handlers.interactive import availability_text, calendar_keyboard
 from e_block_bot.models import Booking
 
 
@@ -37,13 +37,10 @@ def create_booking_router(service: BookingService, settings: Settings) -> Router
         if booking_date < _today(settings):
             await message.answer("Please choose today or a future date.")
             return
-        availability_rows = await service.availability(booking_date)
-        lines = [f"Lounge availability for {booking_date:%Y-%m-%d}:"]
-        lines.extend(
-            f"{slot.label()} — {'available' if available else 'booked'}"
-            for slot, available in availability_rows
+        await message.answer(
+            availability_text(service, booking_date, await service.bookings_for_date(booking_date))
+            + "\n\nUnlisted times are available. Use /book to reserve."
         )
-        await message.answer("\n".join(lines) + "\n\nTo book: /book YYYY-MM-DD HH:MM [purpose]")
 
     @router.message(Command("book"))
     async def book(message: Message) -> None:
@@ -56,33 +53,26 @@ def create_booking_router(service: BookingService, settings: Settings) -> Router
                 "Choose a date:", reply_markup=calendar_keyboard("booking", _today(settings))
             )
             return
-        parts = arguments.split(maxsplit=2)
-        if len(parts) < 2:
-            await message.answer("Usage: /book YYYY-MM-DD HH:MM [optional purpose]")
+        parts = arguments.split(maxsplit=3)
+        if len(parts) < 3:
+            await message.answer(
+                "Usage: /book YYYY-MM-DD HH:MM DURATION_MINUTES [optional purpose]"
+            )
             return
         try:
             booking_date = date.fromisoformat(parts[0])
             start = datetime.strptime(parts[1], "%H:%M").time()
+            duration_minutes = int(parts[2])
+            slot = service.slot_for_duration(booking_date, start, duration_minutes)
         except ValueError:
-            await message.answer("Use /book YYYY-MM-DD HH:MM [optional purpose].")
-            return
-        slot = next(
-            (
-                candidate
-                for candidate in service.slots_for_date(booking_date)
-                if candidate.start == start
-            ),
-            None,
-        )
-        if slot is None:
-            await message.answer("That start time is not one of the configured two-hour slots.")
+            await message.answer("Use /book YYYY-MM-DD HH:MM DURATION_MINUTES [optional purpose].")
             return
         try:
             await service.ensure_user(
                 message.from_user.id, message.from_user.username, message.from_user.first_name
             )
             booking = await service.create_booking(
-                message.from_user.id, booking_date, slot, parts[2] if len(parts) == 3 else None
+                message.from_user.id, booking_date, slot, parts[3] if len(parts) == 4 else None
             )
         except BookingError as error:
             await message.answer(str(error))

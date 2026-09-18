@@ -47,6 +47,8 @@ class Booking(Base):
     booking_date: Mapped[date] = mapped_column(Date, index=True)
     slot_start: Mapped[time] = mapped_column(Time)
     slot_end: Mapped[time] = mapped_column(Time)
+    start_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    end_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
     purpose: Mapped[str | None] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(UTC)
