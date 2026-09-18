@@ -31,7 +31,7 @@ All Git work in this project must follow the [SE-EDU Git conventions](https://se
 - Write commit subjects in imperative mood, capitalize the first letter, omit the final period, and keep them within 72 characters (aim for 50).
 - Use a category or scope when useful, such as `feat: Add start command` or `docs: Define contribution rules`.
 - For non-trivial commits, add a body separated by a blank line, wrapped at 72 characters. Explain what changed and why; the diff explains how.
-- Use meaningful kebab-case branch names. This project prefixes branches with `codex/`, for example `codex/block-1-bot-skeleton`.
+- Use meaningful lowercase kebab-case branch names, for example `block-1-bot-skeleton`. If the branch relates to an issue, prefix it with the issue number, for example `1234-bot-skeleton`.
 - Keep commits focused and reviewable. Split unrelated changes into separate commits.
 - Pull requests must describe the problem, the change, verification evidence, and remaining risks.
 

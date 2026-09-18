@@ -14,7 +14,7 @@ Use parallel agents for independent work such as researching a library, reviewin
 ## Block loop
 
 1. Refine the issue and acceptance criteria.
-2. Create a branch from `main`, using a name such as `codex/block-1-bot-skeleton`.
+2. Create a branch from `main`, using a name such as `block-1-bot-skeleton` or `1234-bot-skeleton` when an issue exists.
 3. Explain the next small commit before editing.
 4. Implement one coherent slice with tests and documentation.
 5. Run the quality checks and record their exact results.
