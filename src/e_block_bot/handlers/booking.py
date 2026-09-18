@@ -9,6 +9,7 @@ from aiogram.types import Message
 
 from e_block_bot.booking import BookingError, BookingService
 from e_block_bot.config import Settings
+from e_block_bot.handlers.interactive import calendar_keyboard
 from e_block_bot.models import Booking
 
 
@@ -23,6 +24,11 @@ def create_booking_router(service: BookingService, settings: Settings) -> Router
             await message.answer("Please use this command in a private chat with the bot.")
             return
         raw_date = _arguments(message)
+        if not raw_date:
+            await message.answer(
+                "Choose a date:", reply_markup=calendar_keyboard("availability", _today(settings))
+            )
+            return
         try:
             booking_date = date.fromisoformat(raw_date) if raw_date else _today(settings)
         except ValueError:
@@ -44,7 +50,13 @@ def create_booking_router(service: BookingService, settings: Settings) -> Router
         if message.chat.type != "private" or message.from_user is None:
             await message.answer("Please book in a private chat with the bot.")
             return
-        parts = _arguments(message).split(maxsplit=2)
+        arguments = _arguments(message)
+        if not arguments:
+            await message.answer(
+                "Choose a date:", reply_markup=calendar_keyboard("booking", _today(settings))
+            )
+            return
+        parts = arguments.split(maxsplit=2)
         if len(parts) < 2:
             await message.answer("Usage: /book YYYY-MM-DD HH:MM [optional purpose]")
             return

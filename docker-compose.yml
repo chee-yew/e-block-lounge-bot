@@ -18,6 +18,7 @@ services:
       LOUNGE_OPEN_TIME: ${LOUNGE_OPEN_TIME:-10:00}
       LOUNGE_CLOSE_TIME: ${LOUNGE_CLOSE_TIME:-22:00}
       SLOT_DURATION_MINUTES: ${SLOT_DURATION_MINUTES:-120}
+      SLOT_INCREMENT_MINUTES: ${SLOT_INCREMENT_MINUTES:-30}
       DATABASE_URL: postgresql+asyncpg://e_block_bot:${POSTGRES_PASSWORD}@db:5432/e_block_bot
     depends_on:
       - db

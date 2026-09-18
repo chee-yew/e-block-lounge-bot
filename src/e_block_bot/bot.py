@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from e_block_bot.booking import BookingService
 from e_block_bot.config import Settings
 from e_block_bot.handlers.booking import create_booking_router
+from e_block_bot.handlers.interactive import create_interactive_router
 from e_block_bot.handlers.start import router as start_router
 
 
@@ -16,9 +17,9 @@ def create_dispatcher(
 
     dispatcher = Dispatcher()
     dispatcher.include_router(start_router)
-    dispatcher.include_router(
-        create_booking_router(BookingService(session_factory, settings), settings)
-    )
+    service = BookingService(session_factory, settings)
+    dispatcher.include_router(create_interactive_router(service))
+    dispatcher.include_router(create_booking_router(service, settings))
     return dispatcher
 
 

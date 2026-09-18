@@ -44,7 +44,7 @@ class BookingService:
         slots: list[Slot] = []
         while current + duration <= close:
             slots.append(Slot(current.time(), (current + duration).time()))
-            current += duration
+            current += timedelta(minutes=self.settings.slot_increment_minutes)
         return slots
 
     async def availability(self, booking_date: date) -> list[tuple[Slot, bool]]:
@@ -60,11 +60,14 @@ class BookingService:
                     Booking.cancelled_at.is_(None),
                 )
             )
-            booked = {(item.slot_start, item.slot_end) for item in result}
+            booked = [(item.slot_start, item.slot_end) for item in result]
         return [
             (
                 slot,
-                (slot.start, slot.end) not in booked
+                not any(
+                    existing_start < slot.end and slot.start < existing_end
+                    for existing_start, existing_end in booked
+                )
                 and (booking_date != now.date() or slot.start > current_time),
             )
             for slot in slots
@@ -98,9 +101,19 @@ class BookingService:
             raise BookingError("You cannot book a date in the past.")
         if booking_date == today and slot.start <= datetime.now(self.settings.timezone).time():
             raise BookingError("That slot has already started or passed.")
+        if slot.start.minute % self.settings.slot_increment_minutes:
+            raise BookingError("Start times must be on the configured 30-minute increments.")
         if slot not in self.slots_for_date(booking_date):
             raise BookingError("That is not one of the configured lounge slots.")
         async with self.session_factory() as session:
+            existing = await session.scalars(
+                select(Booking).where(
+                    Booking.booking_date == booking_date,
+                    Booking.cancelled_at.is_(None),
+                )
+            )
+            if any(item.slot_start < slot.end and slot.start < item.slot_end for item in existing):
+                raise BookingError("That time overlaps an existing booking.")
             booking = Booking(
                 user_id=telegram_id,
                 booking_date=booking_date,

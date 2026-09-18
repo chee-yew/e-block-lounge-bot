@@ -25,6 +25,7 @@ class Settings(BaseSettings):
     lounge_open_time: time = Field(default=time(10, 0), alias="LOUNGE_OPEN_TIME")
     lounge_close_time: time = Field(default=time(22, 0), alias="LOUNGE_CLOSE_TIME")
     slot_duration_minutes: int = Field(default=120, alias="SLOT_DURATION_MINUTES", gt=0)
+    slot_increment_minutes: int = Field(default=30, alias="SLOT_INCREMENT_MINUTES", gt=0)
 
     @field_validator("e_block_timezone")
     @classmethod
@@ -61,6 +62,8 @@ class Settings(BaseSettings):
         )
         if total_minutes % self.slot_duration_minutes:
             raise ValueError("The lounge opening window must contain whole configured slots")
+        if self.slot_duration_minutes % self.slot_increment_minutes:
+            raise ValueError("SLOT_DURATION_MINUTES must be divisible by SLOT_INCREMENT_MINUTES")
         return self
 
 

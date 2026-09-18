@@ -28,11 +28,16 @@ async def test_availability_and_booking_conflict(booking_service: BookingService
     await booking_service.ensure_user(1, "one", "Resident")
     await booking_service.create_booking(1, booking_date, slot, "Study group")
 
-    with pytest.raises(BookingError, match="just booked"):
+    with pytest.raises(BookingError, match="overlaps"):
         await booking_service.create_booking(2, booking_date, slot, None)
 
     availability = await booking_service.availability(booking_date)
     assert availability[0] == (slot, False)
+
+    with pytest.raises(BookingError, match="overlaps"):
+        await booking_service.create_booking(
+            2, booking_date, booking_service.slots_for_date(booking_date)[1], None
+        )
 
 
 @pytest.mark.asyncio
