@@ -2,7 +2,7 @@
 
 import calendar
 from collections.abc import Sequence
-from datetime import date, datetime
+from datetime import date, datetime, time, timedelta
 
 from aiogram import F, Router
 from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, Message
@@ -202,9 +202,13 @@ def availability_text(
     if not rows:
         return f"No bookings for {selected_date:%Y-%m-%d}."
     lines = [f"Bookings for {selected_date:%Y-%m-%d}:"]
+    day_start = datetime.combine(selected_date, time.min, tzinfo=service.settings.timezone)
+    day_end = day_start + timedelta(days=1)
     for booking, user in rows:
         handle = f"@{user.username}" if user.username else (user.first_name or "resident")
         start = service._aware(booking.start_at).astimezone(service.settings.timezone)
         end = service._aware(booking.end_at).astimezone(service.settings.timezone)
+        start = max(start, day_start)
+        end = min(end, day_end)
         lines.append(f"{start:%H:%M}-{end:%H:%M} — {handle}")
     return "\n".join(lines)
